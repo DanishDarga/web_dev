@@ -8,6 +8,7 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('./models/user');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
+const Transaction = require('./models/Transaction');
 
 mongoose.connect('mongodb://127.0.0.1:27017/finance-tracker-app')
     .then(() => console.log('MongoDB Connected...'))
@@ -46,6 +47,13 @@ passport.use(new LocalStrategy(
         }
     }
 ));
+
+function ensureAuth(req, res, next) {
+    if (req.isAuthenticated()) {
+        return next();
+    }
+    res.redirect('/login');
+}
 
 // serialize / deserialize user
 passport.serializeUser((user, done) => {
@@ -116,14 +124,6 @@ app.get('/auth/google/callback',
 );
 
 // dashboard route (protected)
-app.get('/dashboard', (req, res) => {
-    if (!req.isAuthenticated()) {
-        return res.redirect('/login');
-    }
-    res.send(`Welcome ${req.user.displayName}`);
-});
-
-
 app.get("/home", (req, res) => {
     res.render("home.ejs", { user: req.user });
 })
@@ -172,6 +172,50 @@ app.get('/logout', (req, res, next) => {
         if (err) { return next(err); }
         res.redirect('/home');
     });
+});
+app.get("/managefinance", ensureAuth, async (req, res) => {
+    try {
+        const transactions = await Transaction.find({ user: req.user.id }).sort({ date: -1 });
+
+        const expenditureByCategory = await Transaction.aggregate([
+            {
+                $match: {
+                    user: req.user._id,
+                    type: 'Expense'
+                }
+            },
+            {
+                $group: {
+                    _id: '$category',
+                    totalAmount: { $sum: '$amount' }
+                }
+            },
+            { $sort: { totalAmount: -1 } }
+        ]);
+
+        res.render("managefinance.ejs", { user: req.user, transactions: transactions, expenditureByCategory });
+    } catch (error) {
+        console.log(error);
+        req.flash('error', 'Could not fetch transactions.');
+        res.redirect('/home');
+    }
+});
+
+app.post('/transactions', ensureAuth, async (req, res) => {
+    try {
+        const { type, amount, category, description } = req.body;
+        const newTransaction = new Transaction({
+            type, category, amount, description,
+            user: req.user.id,
+            date: new Date()
+        });
+        await newTransaction.save();
+        res.redirect('/managefinance');
+    } catch (error) {
+        console.log(error);
+        req.flash('error', 'There was a problem adding the transaction.');
+        res.redirect('/managefinance');
+    }
 });
 
 app.listen(3000, () => {
