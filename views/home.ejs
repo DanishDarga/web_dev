@@ -47,11 +47,17 @@
                         <a class="nav-link disabled" aria-disabled="true">Disabled</a>
                     </li>
                 </ul>
-                <form class="d-flex">
-                    <a href="/signup" class="btn btn-outline-success me-2">Sign Up</a>
-                    <a href="/login" class="btn btn-outline-primary">Log In</a>
-
-                </form>
+                <div class="d-flex align-items-center">
+                    <% if (user) { %>
+                        <span class="navbar-text me-3">
+                            Welcome, <%= user.displayName || user.username %>
+                        </span>
+                        <a href="/logout" class="btn btn-outline-secondary">Log Out</a>
+                        <% } else { %>
+                            <a href="/signup" class="btn btn-outline-success me-2">Sign Up</a>
+                            <a href="/login" class="btn btn-outline-primary">Log In</a>
+                            <% } %>
+                </div>
             </div>
         </div>
     </nav>
