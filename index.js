@@ -175,48 +175,30 @@ app.get('/logout', (req, res, next) => {
 });
 app.get("/managefinance", ensureAuth, async (req, res) => {
     try {
+        // This query only finds transactions matching the user's ID
         const transactions = await Transaction.find({ user: req.user.id }).sort({ date: -1 });
 
-        const expenditureByCategory = await Transaction.aggregate([
-            {
-                $match: {
-                    user: req.user._id,
-                    type: 'Expense'
-                }
-            },
-            {
-                $group: {
-                    _id: '$category',
-                    totalAmount: { $sum: '$amount' }
-                }
-            },
-            { $sort: { totalAmount: -1 } }
-        ]);
-
+        // ...
         res.render("managefinance.ejs", { user: req.user, transactions: transactions, expenditureByCategory });
-    } catch (error) {
-        console.log(error);
-        req.flash('error', 'Could not fetch transactions.');
-        res.redirect('/home');
-    }
+    } //...
 });
+
 
 app.post('/transactions', ensureAuth, async (req, res) => {
     try {
         const { type, amount, category, description } = req.body;
         const newTransaction = new Transaction({
             type, category, amount, description,
-            user: req.user.id,
+            user: req.user.id, // <-- This line is key!
             date: new Date()
         });
         await newTransaction.save();
         res.redirect('/managefinance');
     } catch (error) {
-        console.log(error);
-        req.flash('error', 'There was a problem adding the transaction.');
-        res.redirect('/managefinance');
+        //...
     }
 });
+
 
 app.listen(3000, () => {
     console.log("Server is listening on port 3000");
