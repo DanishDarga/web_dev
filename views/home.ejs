@@ -1,61 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FinanceFlow</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../style/home.css" />
+  </head>
+  <body>
+    <header class="header">
+      <a href="#" class="logo">
+        <i class="fas fa-dollar-sign logo-icon"></i>
+        FinanceFlow
+      </a>
+      <div>
+        <a href="#" class="header-button">Sign in</a>
+        <a href="#" class="header-button">Log in</a>
+      </div>
+    </header>
+    <div class="container">
+      <main class="hero-section">
+        <h1 class="hero-title">
+          Take Control of Your<br />
+          <span class="hero-title-highlight">Financial Future</span>
+        </h1>
+        <p class="hero-subtitle">
+          Smart budgeting, expense tracking, and financial insights all in one
+          beautiful, intuitive platform. Make informed decisions and achieve
+          your financial goals.
+        </p>
+        <a href="#" class="hero-button">
+          Start Managing Money
+          <span class="hero-button-arrow">&rarr;</span>
+        </a>
+      </main>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
-        crossorigin="anonymous"></script>
-</head>
-
-<body>
-    <nav class="navbar navbar-expand-lg bg-body-tertiary">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#">FinanceABC</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
-                aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="#">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">Link</a>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
-                            aria-expanded="false">
-                            Dropdown
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#">Action</a></li>
-                            <li><a class="dropdown-item" href="#">Another action</a></li>
-                            <li>
-                                <hr class="dropdown-divider">
-                            </li>
-                            <li><a class="dropdown-item" href="#">Something else here</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link disabled" aria-disabled="true">Disabled</a>
-                    </li>
-                </ul>
-                <form class="d-flex">
-                    <a href="/signup" class="btn btn-outline-success me-2">Sign Up</a>
-                    <a href="/login" class="btn btn-outline-primary">Log In</a>
-
-                </form>
-            </div>
+      <section class="features-section">
+        <div class="feature-card">
+          <div class="feature-icon-container green">
+            <i class="fas fa-chart-line feature-icon green"></i>
+          </div>
+          <h3 class="feature-title">Smart Tracking</h3>
+          <p class="feature-description">
+            Automatically categorize and track your expenses with intelligent
+            insights that help you understand your spending patterns.
+          </p>
         </div>
-    </nav>
-    <h3>Personal Finance Tracker</h3>
-</body>
 
+        <div class="feature-card">
+          <div class="feature-icon-container blue">
+            <i class="fas fa-clock feature-icon blue"></i>
+          </div>
+          <h3 class="feature-title">Visual Budgets</h3>
+          <p class="feature-description">
+            Create and monitor budgets with beautiful charts and real-time
+            progress tracking to stay on top of your financial goals.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-container purple">
+            <i class="fas fa-shield-alt feature-icon purple"></i>
+          </div>
+          <h3 class="feature-title">Secure & Private</h3>
+          <p class="feature-description">
+            Your financial data is protected with bank-level security. We never
+            share your personal information with third parties.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <footer class="footer">
+      FinanceFlow - Smart personal finance management made simple
+    </footer>
+  </body>
 </html>
