@@ -7,11 +7,6 @@ const transactionSchema = new Schema({
         ref: 'User',
         required: true
     },
-    type: {
-        type: String,
-        enum: ['Income', 'Expense'],
-        required: true
-    },
     category: {
         type: String,
         required: true
@@ -20,13 +15,9 @@ const transactionSchema = new Schema({
         type: Number,
         required: true
     },
-    description: {
+    item: {
         type: String,
         required: true
-    },
-    date: {
-        type: Date,
-        default: Date.now
     }
 });
 

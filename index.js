@@ -3,6 +3,7 @@ const app = express();
 const session = require('express-session');
 const passport = require('passport');
 const flash = require('connect-flash');
+const path = require('path');
 const LocalStrategy = require('passport-local').Strategy;
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('./models/user');
@@ -13,7 +14,7 @@ const Transaction = require('./models/Transaction');
 mongoose.connect('mongodb://127.0.0.1:27017/finance-tracker-app')
     .then(() => console.log('MongoDB Connected...'))
     .catch(err => console.log(err));
-
+app.use(express.static(path.join(__dirname, "public")));
 app.set('view engine', 'ejs');
 
 // Middleware to parse URL-encoded bodies (as sent by HTML forms)
@@ -29,6 +30,10 @@ app.use(flash());
 // initialize passport
 app.use(passport.initialize());
 app.use(passport.session());
+app.use((req, res, next) => {
+    res.locals.user = req.user || null;  // make user available in all EJS views
+    next();
+});
 
 passport.use(new LocalStrategy(
     async (username, password, done) => {
@@ -122,6 +127,16 @@ app.get('/auth/google/callback',
         res.redirect('/home');
     }
 );
+// app.post("managefinance/addtransactions/:id", ensureAuth, async (req, res) => {
+//     const { category, item, amount } = req.body;
+//     const
+//     const newTransaction = new Transaction({
+//         category,
+//         item,
+//         amount,
+//     });
+//     await newTransaction.save();
+// });
 
 // dashboard route (protected)
 app.get("/home", (req, res) => {
@@ -164,7 +179,8 @@ app.post('/login',
         successRedirect: '/home',
         failureRedirect: '/login',
         failureFlash: true
-    })
+    }),
+    res.redirect('/managefinance')
 );
 
 app.get('/logout', (req, res, next) => {
@@ -173,16 +189,36 @@ app.get('/logout', (req, res, next) => {
         res.redirect('/home');
     });
 });
+
 app.get("/managefinance", ensureAuth, async (req, res) => {
+    const expenditureByCategory = await Transaction.aggregate([
+        {
+            // The pipeline starts by matching only the current user's documents
+            $match: {
+                user: req.user._id,
+                type: 'Expense'
+            }
+        },
+        {
+            $group: {
+                _id: '$category',
+                totalAmount: { $sum: '$amount' }
+            }
+        },
+        // ...
+    ]);
     try {
         // This query only finds transactions matching the user's ID
         const transactions = await Transaction.find({ user: req.user.id }).sort({ date: -1 });
-
         // ...
         res.render("managefinance.ejs", { user: req.user, transactions: transactions, expenditureByCategory });
     } //...
-});
+    catch (error) {
+        console.error(error);
+    }
+    // ... inside GET /managefinance
 
+});
 
 app.post('/transactions', ensureAuth, async (req, res) => {
     try {
