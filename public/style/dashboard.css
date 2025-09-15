@@ -112,6 +112,11 @@ body {
     font-weight: 500;
 }
 
+.card-goal-text {
+    margin-top: 10px;
+    font-size: 0.9em;
+    color: var(--light-text);
+}
 .progress-bar-container {
     background-color: var(--bg-color);
     border-radius: 5px;

@@ -13,6 +13,10 @@ const userSchema = new Schema({
         required: true,
         unique: true
     },
+     savingsGoal: {
+        type: Number,
+        default: 0
+    }
 });
 
 userSchema.plugin(passportLocalMongoose);

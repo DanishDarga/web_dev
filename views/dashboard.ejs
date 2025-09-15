@@ -2,7 +2,11 @@
         <main class="main-content">
             <header class="dashboard-header">
                 <h1>Welcome, <%= username %>!</h1>
-                <!-- Header actions can be added here if needed -->
+                <div class="header-actions">
+                    <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#savingsGoalModal">
+                        Set Goal
+                    </button>
+                </div>
             </header>
 
             <section class="summary-cards">
@@ -30,10 +34,18 @@
                 </div>
                 <div class="card">
                     <h3>Savings Goal</h3>
-                    <p class="card-value">0% Complete</p>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar" style="width: 1%;"></div>
-                    </div>
+                    <% if (savingsGoal > 0) { %>
+                        <p class="card-value"><%= savingsPercentage.toFixed(0) %>%</p>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" style="width: <%= savingsPercentage.toFixed(2) %>%;"></div>
+                        </div>
+                        <p class="card-goal-text">
+                            $<%= Math.max(0, totalBalance).toFixed(2) %> of $<%= savingsGoal.toFixed(2) %>
+                        </p>
+                    <% } else { %>
+                        <p class="card-value">Not Set</p>
+                        <p class="card-goal-text">Click "Set Goal" to start.</p>
+                    <% } %>
                 </div>
             </section>
 
@@ -100,6 +112,32 @@
                     <button type="submit" class="btn btn-danger">Reset All Data</button>
                 </form>
             </section>
+
+            <!-- Savings Goal Modal -->
+            <div class="modal fade" id="savingsGoalModal" tabindex="-1" aria-labelledby="savingsGoalModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="savingsGoalModalLabel">Set Your Savings Goal</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <form action="/savings-goal" method="POST">
+                            <div class="modal-body">
+                                <p>Enter the total amount you want to save. Your progress will be tracked against your total balance.</p>
+                                <label for="goalAmount" class="form-label">Goal Amount</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="goalAmount" name="goalAmount" placeholder="e.g., 1000" min="0" step="1" required value="<%= currentUser.savingsGoal > 0 ? currentUser.savingsGoal : '' %>">
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Save Goal</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </main>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

@@ -11,6 +11,7 @@
         crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/style/sidebar.css">
     <link rel="stylesheet" href="/style/dashboard.css">
+    <link rel="stylesheet" href="/style/footer.css">
 </head>
 
 <body>
@@ -25,7 +26,8 @@
             <nav class="nav-menu">
                 <ul>
                     <li><a href="/dashboard" class="<%= path === '/dashboard' ? 'active' : '' %>"><i class="fas fa-chart-pie nav-icon"></i><span>Dashboard</span></a></li>
-                    <li><a href="/managefinance" class="<%= path === '/managefinance' ? 'active' : '' %>"><i class="fas fa-exchange-alt nav-icon"></i><span>Transactions</span></a></li>
+                    <li><a href="/managefinance" class="<%= path === '/managefinance' || path.includes('/edit') ? 'active' : '' %>"><i class="fas fa-exchange-alt nav-icon"></i><span>Manage Transactions</span></a></li>
+                    <li><a href="/transactions/new" class="<%= path === '/transactions/new' ? 'active' : '' %>"><i class="fas fa-plus-circle nav-icon"></i><span>Add Transaction</span></a></li>
                 </ul>
             </nav>
             <div class="sidebar-footer">
@@ -34,6 +36,7 @@
         </aside>
         <%- body %>
     </div>
+    <%- include('footer.ejs') %>
 
 </body>
 </html>

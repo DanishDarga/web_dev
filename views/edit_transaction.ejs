@@ -1,0 +1,71 @@
+<% layout('boilerplate') %>
+
+<main class="main-content">
+    <div class="container-fluid my-4">
+        <div class="mb-4">
+            <h1>Edit Transaction</h1>
+        </div>
+
+        <div class="card mb-5">
+            <div class="card-header">
+                Update Transaction Details
+            </div>
+            <div class="card-body">
+                <form action="/transactions/<%= transaction._id %>/update" method="POST">
+                    <div class="mb-3">
+                        <label for="type" class="form-label">Type</label>
+                        <select class="form-select" id="type" name="type" required>
+                            <option value="expense" <%= transaction.type === 'expense' ? 'selected' : '' %>>Expense</option>
+                            <option value="income" <%= transaction.type === 'income' ? 'selected' : '' %>>Income</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="item" class="form-label">Item / Description</label>
+                        <input type="text" class="form-control" id="item" name="item"
+                            placeholder="e.g., Weekly shopping" value="<%= transaction.item %>" required>
+                    </div>
+                    <div class="mb-3" id="category-field">
+                        <label for="category" class="form-label">Category</label>
+                        <input type="text" class="form-control" id="category" name="category"
+                            placeholder="e.g., Groceries" value="<%= transaction.category %>" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="amount" name="amount"
+                                placeholder="0.00" step="0.01" min="0" value="<%= transaction.amount %>" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update Transaction</button>
+                    <a href="/managefinance" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const typeSelect = document.getElementById('type');
+        const categoryField = document.getElementById('category-field');
+        const categoryInput = document.getElementById('category');
+
+        function toggleCategoryField() {
+            if (typeSelect.value === 'income') {
+                // Using simple hide/show for edit page to avoid CSS complexity from other file
+                categoryField.style.display = 'none';
+                categoryInput.removeAttribute('required');
+            } else {
+                categoryField.style.display = 'block';
+                categoryInput.setAttribute('required', 'required');
+            }
+        }
+
+        // Run on page load to set initial state
+        toggleCategoryField();
+
+        // Add event listener for changes
+        typeSelect.addEventListener('change', toggleCategoryField);
+    });
+</script>

@@ -1,5 +1,7 @@
+// =================================================================
+//                         IMPORTS & SETUP
+// =================================================================
 const express = require('express');
-const app = express();
 const session = require('express-session');
 const passport = require('passport');
 const flash = require('connect-flash');
@@ -12,17 +14,29 @@ const ejsMate = require('ejs-mate');
 const mongoose = require('mongoose');
 const Transaction = require('./models/Transaction');
 
-mongoose.connect('mongodb://127.0.0.1:27017/finance-tracker-app')
+require('dotenv').config();
+
+const app = express();
+
+// =================================================================
+//                         DATABASE CONNECTION
+// =================================================================
+mongoose.connect(process.env.DB_URL)
     .then(() => console.log('MongoDB Connected...'))
     .catch(err => console.log(err));
+
+// =================================================================
+//                         MIDDLEWARE & APP CONFIG
+// =================================================================
 app.use(express.static(path.join(__dirname, "public")));
-
-
-// Middleware to parse URL-encoded bodies (as sent by HTML forms)
 app.use(express.urlencoded({ extended: true }));
 
+app.engine('ejs', ejsMate);
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
 const sessionConfig = {
-    secret: 'rew123', // It's good practice to change your secret
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
     cookie: {
@@ -33,27 +47,18 @@ const sessionConfig = {
 }
 
 app.use(session(sessionConfig));
-// flash middleware
 app.use(flash());
-// initialize passport
+
+// =================================================================
+//                         PASSPORT CONFIGURATION
+// =================================================================
 app.use(passport.initialize());
 app.use(passport.session());
-app.set('view engine', 'ejs');
-app.engine('ejs', ejsMate);
-app.set('views', path.join(__dirname, 'views'));
 
 // Passport configuration with passport-local-mongoose
 passport.use(new LocalStrategy(User.authenticate()));
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
-
-app.use((req, res, next) => {
-    res.locals.currentUser = req.user;
-    res.locals.success = req.flash('success');
-    res.locals.error = req.flash('error');
-    res.locals.path = req.path;
-    next();
-});
 
 function ensureAuth(req, res, next) {
     if (req.isAuthenticated()) {
@@ -64,8 +69,8 @@ function ensureAuth(req, res, next) {
 }
 
 passport.use(new GoogleStrategy({
-    clientID: "81686256472-dm31lekf7cagreel3fo0g84274gnvnen.apps.googleusercontent.com",
-    clientSecret: "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",
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: "/auth/google/callback"
 },
     async (accessToken, refreshToken, profile, done) => {
@@ -95,7 +100,7 @@ passport.use(new GoogleStrategy({
                     return done(null, user);
                 }
                 // If no user is found by googleId or email, create a new one
-                const user = new User(newUserInfo);
+                user = new User(newUserInfo);
                 // Register the new user with a random password to satisfy passport-local-mongoose
                 const registeredUser = await User.register(user, crypto.randomBytes(16).toString('hex'));
                 return done(null, registeredUser);
@@ -105,6 +110,21 @@ passport.use(new GoogleStrategy({
         }
     }
 ));
+
+// =================================================================
+//                         GLOBAL MIDDLEWARE
+// =================================================================
+app.use((req, res, next) => {
+    res.locals.currentUser = req.user;
+    res.locals.success = req.flash('success');
+    res.locals.error = req.flash('error');
+    res.locals.path = req.path;
+    next();
+});
+
+// =================================================================
+//                              ROUTES
+// =================================================================
 
 // start Google authentication
 app.get('/auth/google',
@@ -120,26 +140,13 @@ app.get('/auth/google/callback',
     }
 );
 
-app.post('/managefinance', ensureAuth, async (req, res) => {
-    const { type, amount, category, item } = req.body;
-    const newTransaction = new Transaction({
-        type,
-        amount,
-        category,
-        item,
-        user: req.user._id
-    })
-    await newTransaction.save();
-});
-
-
 app.get("/home", (req, res) => {
     res.render("home.ejs");
 })
+
 app.get("/signup", (req, res) => {
     res.render("signup.ejs");
 })
-
 
 app.get('/dashboard', ensureAuth, async (req, res) => {
     try {
@@ -209,12 +216,20 @@ app.get('/dashboard', ensureAuth, async (req, res) => {
         const lineChartIncomeData = lineChartLabels.map(month => monthlyTrend[month].income);
         const lineChartExpenseData = lineChartLabels.map(month => monthlyTrend[month].expenses);
 
+        const savingsGoal = req.user.savingsGoal || 0;
+        let savingsPercentage = 0;
+        if (savingsGoal > 0) {
+            // Calculate percentage based on total balance, but don't let it go below 0 or above 100.
+            savingsPercentage = Math.min(100, Math.max(0, (totalBalance / savingsGoal) * 100));
+        }
+
         res.render('dashboard.ejs', {
-            username: req.user.username,
+            username: req.user.displayName || req.user.username,
             transactions: recentTransactions,
             totalBalance, monthlyIncome, monthlyExpenses,
             pieChartLabels, pieChartData,
             lineChartLabels, lineChartIncomeData, lineChartExpenseData,
+            savingsGoal, savingsPercentage
         });
     } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -260,7 +275,7 @@ app.get('/logout', (req, res, next) => {
 });
 
 app.get("/managefinance", ensureAuth, async (req, res) => {
-    const transactions = await Transaction.find({ user: req.user._id });
+    const transactions = await Transaction.find({ user: req.user._id }).sort({ date: -1 });
     res.render("managefinance.ejs", { transactions });
 });
 
@@ -284,6 +299,80 @@ app.post('/transactions', ensureAuth, async (req, res) => {
     }
 });
 
+app.get('/transactions/new', ensureAuth, (req, res) => {
+    res.render('new_transaction');
+});
+
+app.get('/transactions/:id/edit', ensureAuth, async (req, res) => {
+    try {
+        const transaction = await Transaction.findOne({ _id: req.params.id, user: req.user._id });
+        if (!transaction) {
+            req.flash('error', 'Transaction not found or you do not have permission to edit it.');
+            return res.redirect('/managefinance');
+        }
+        res.render('edit_transaction', { transaction });
+    } catch (error) {
+        console.error("Error fetching transaction for edit:", error);
+        req.flash('error', 'Could not load the edit page.');
+        res.redirect('/managefinance');
+    }
+});
+
+app.post('/transactions/:id/update', ensureAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updatedTransaction = await Transaction.findOneAndUpdate({ _id: id, user: req.user._id }, req.body, { new: true, runValidators: true });
+        if (!updatedTransaction) {
+            req.flash('error', 'Transaction not found or you do not have permission to update it.');
+            return res.redirect('/managefinance');
+        }
+        req.flash('success', 'Transaction updated successfully!');
+        res.redirect('/managefinance');
+    } catch (error) {
+        console.error("Error updating transaction:", error);
+        req.flash('error', 'Could not update transaction. Please check all fields.');
+        res.redirect(`/transactions/${req.params.id}/edit`);
+    }
+});
+
+app.post('/transactions/:id/delete', ensureAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const deletedTransaction = await Transaction.findOneAndDelete({ _id: id, user: req.user._id });
+        if (!deletedTransaction) {
+            req.flash('error', 'Transaction not found or you do not have permission to delete it.');
+            return res.redirect('/managefinance');
+        }
+        req.flash('success', 'Transaction deleted successfully!');
+        res.redirect('/managefinance');
+    } catch (error) {
+        console.error("Error deleting transaction:", error);
+        req.flash('error', 'Could not delete transaction.');
+        res.redirect('/managefinance');
+    }
+});
+
+app.post('/savings-goal', ensureAuth, async (req, res) => {
+    try {
+        const { goalAmount } = req.body;
+        const userId = req.user._id;
+
+        const amount = Number(goalAmount);
+        if (isNaN(amount) || amount < 0) {
+            req.flash('error', 'Please enter a valid, non-negative number for your goal.');
+            return res.redirect('/dashboard');
+        }
+
+        await User.findByIdAndUpdate(userId, { savingsGoal: amount });
+        req.flash('success', 'Savings goal updated successfully!');
+        res.redirect('/dashboard');
+    } catch (error) {
+        console.error("Error updating savings goal:", error);
+        req.flash('error', 'Could not update your savings goal. Please try again.');
+        res.redirect('/dashboard');
+    }
+});
+
 app.post('/reset-data', ensureAuth, async (req, res) => {
     try {
         const userId = req.user._id;
@@ -298,7 +387,9 @@ app.post('/reset-data', ensureAuth, async (req, res) => {
     }
 });
 
-
+// =================================================================
+//                            SERVER START
+// =================================================================
 app.listen(3000, () => {
     console.log("Server is listening on port 3000");
 });
