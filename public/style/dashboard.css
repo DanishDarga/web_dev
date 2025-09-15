@@ -19,54 +19,12 @@ body {
     color: var(--text-color);
 }
 
-.dashboard-container {
-    display: grid;
-    grid-template-columns: 250px 1fr;
-    height: 100vh;
-}
-
-/* Sidebar Styling */
-.sidebar {
-    background-color: var(--sidebar-bg);
-    color: var(--dark-text);
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-}
-
-.logo {
-    font-size: 1.8em;
-    font-weight: bold;
-    margin-bottom: 40px;
-    text-align: center;
-}
-
-.nav-menu ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.nav-menu li a {
-    display: block;
-    padding: 15px 20px;
-    color: var(--dark-text);
-    text-decoration: none;
-    border-radius: 8px;
-    margin-bottom: 5px;
-    transition: background-color 0.3s, color 0.3s;
-}
-
-.nav-menu li a:hover,
-.nav-menu li a.active {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
 /* Main Content Area */
 .main-content {
     padding: 30px;
     overflow-y: auto;
+    flex: 1; /* Allow this area to grow and fill the available space */
+    min-width: 0; /* Prevents content from overflowing in a flex container */
 }
 
 .dashboard-header {
@@ -95,6 +53,10 @@ body {
     border: 0 0 0 4px solid transparent;
 }
 
+.btn.btn-danger {
+    background-color: var(--negative-color);
+}
+
 .notification-btn {
     background: none;
     border: none;
@@ -102,7 +64,10 @@ body {
     cursor: pointer;
     color: var(--light-text);
 }
-
+.chart-title {
+    margin: 0 0 15px 0;
+    font-size: 1.2em;
+}
 .user-profile img {
     width: 40px;
     height: 40px;
@@ -174,11 +139,15 @@ body {
     padding: 25px;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    /* Fix the layout size and aspect ratio */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Add a wrapper for the canvas to control its responsive behavior */
+.canvas-wrapper {
     position: relative;
-    /* Needed for absolute positioning */
-    aspect-ratio: 16/9;
-    /* Maintain a 16:9 aspect ratio */
+    flex-grow: 1; /* Allow the wrapper to fill the container's height */
+    min-height: 300px; /* Set a minimum height for the chart area */
 }
 
 /* Make the canvas fill its container */
@@ -188,13 +157,6 @@ body {
     left: 0;
     width: 100% !important;
     height: 100% !important;
-}
-
-
-.chart-container h2 {
-    margin-top: 0;
-    font-size: 1.2em;
-    margin-bottom: 15px;
 }
 
 /* Transaction Table */
@@ -241,4 +203,19 @@ tr:last-child td {
 .negative-amount {
     color: var(--negative-color);
     font-weight: bold;
+}
+
+/* Danger Zone */
+.danger-zone {
+    border-color: var(--negative-color);
+    background-color: #fff5f5;
+}
+
+.danger-zone h2 {
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.danger-zone p {
+    margin-bottom: 20px;
 }

@@ -83,8 +83,12 @@ body {
     font-weight: 500;
     text-decoration: none;
     transition: all 0.2s;
+    margin-left: 0 px;
 }
 
+.header-button-welcome {
+    margin: 0 24px 0 0;
+}
 .header-button:hover {
     background-color: var(--primary-blue);
     color: white;
@@ -177,9 +181,7 @@ body {
     background-color: var(--icon-bg-green);
 }
 
-.feature-icon-container.blue {
-    background-color: var(--icon-bg-blue);
-}
+
 
 .feature-icon-container.purple {
     background-color: var(--icon-bg-purple);
@@ -187,8 +189,14 @@ body {
 
 .feature-icon {
     font-size: 1.5rem;
+    height: 90px;
+    width:90px;
 }
 
+.feature-icon-1 {
+    width: 80px;
+    height: 80px;
+}
 .feature-icon.green {
     color: var(--icon-color-green);
 }

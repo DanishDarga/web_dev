@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const LocalStrategy = require('passport-local').Strategy;
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('./models/user');
+const ejsMate = require('ejs-mate');
 const mongoose = require('mongoose');
 const Transaction = require('./models/Transaction');
 
@@ -15,7 +16,7 @@ mongoose.connect('mongodb://127.0.0.1:27017/finance-tracker-app')
     .then(() => console.log('MongoDB Connected...'))
     .catch(err => console.log(err));
 app.use(express.static(path.join(__dirname, "public")));
-app.set('view engine', 'ejs');
+
 
 // Middleware to parse URL-encoded bodies (as sent by HTML forms)
 app.use(express.urlencoded({ extended: true }));
@@ -26,7 +27,7 @@ const sessionConfig = {
     saveUninitialized: true,
     cookie: {
         httpOnly: true,
-        expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
+        expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
         maxAge: 1000 * 60 * 60 * 24 * 7
     }
 }
@@ -37,6 +38,9 @@ app.use(flash());
 // initialize passport
 app.use(passport.initialize());
 app.use(passport.session());
+app.set('view engine', 'ejs');
+app.engine('ejs', ejsMate);
+app.set('views', path.join(__dirname, 'views'));
 
 // Passport configuration with passport-local-mongoose
 passport.use(new LocalStrategy(User.authenticate()));
@@ -47,6 +51,7 @@ app.use((req, res, next) => {
     res.locals.currentUser = req.user;
     res.locals.success = req.flash('success');
     res.locals.error = req.flash('error');
+    res.locals.path = req.path;
     next();
 });
 
@@ -135,9 +140,6 @@ app.get("/signup", (req, res) => {
     res.render("signup.ejs");
 })
 
-app.get('/services', (req, res) => {
-    res.render('services.ejs');
-})
 
 app.get('/dashboard', ensureAuth, async (req, res) => {
     try {
@@ -279,6 +281,20 @@ app.post('/transactions', ensureAuth, async (req, res) => {
         console.error("Error adding transaction:", error);
         req.flash('error', 'Could not add transaction. Please check all fields.');
         res.redirect('/managefinance');
+    }
+});
+
+app.post('/reset-data', ensureAuth, async (req, res) => {
+    try {
+        const userId = req.user._id;
+        // Delete all transactions associated with the user
+        await Transaction.deleteMany({ user: userId });
+        req.flash('success', 'All transaction data has been successfully reset.');
+        res.redirect('/dashboard');
+    } catch (error) {
+        console.error("Error resetting user data:", error);
+        req.flash('error', 'Could not reset your data. Please try again.');
+        res.redirect('/dashboard');
     }
 });
 

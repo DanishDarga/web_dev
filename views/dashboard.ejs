@@ -1,36 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../style/sidebar.css">
-    <link rel="stylesheet" href="../style/dashboard.css">
-</head>
-
-<body>
-    <div class="dashboard-container">
-        <aside class="sidebar">
-            <div class="logo">Finance Flow</div>
-            <nav class="nav-menu">
-                <ul>
-                    <li><a href="/dashboard" class="active">🏠 Dashboard</a></li>
-                    <li><a href="/managefinance">💰 Transactions</a></li>
-                    <li><a href="/services">📊 Services</a></li>
-                </ul>
-            </nav>
-        </aside>
-
+        <% layout('boilerplate') %>
         <main class="main-content">
             <header class="dashboard-header">
                 <h1>Welcome, <%= username %>!</h1>
-                <div class="header-actions">
-                    <a href="/managefinance" class="btn">Add Transaction</a>
-                    <a href="/logout" class="btn btn-outline-danger">Logout</a>
-                    <a href="/home" class="btn btn-outline-info">Home</a>
-                </div>
+                <!-- Header actions can be added here if needed -->
             </header>
 
             <section class="summary-cards">
@@ -67,12 +39,16 @@
 
             <section class="charts-section">
                 <div class="chart-container" id="line-chart">
-                    <h2>Income vs. Expenses</h2>
-                    <canvas id="myLineChart"></canvas>
+                    <h3 class="chart-title">Income vs. Expenses</h3>
+                    <div class="canvas-wrapper">
+                        <canvas id="myLineChart"></canvas>
+                    </div>
                 </div>
                 <div class="chart-container" id="pie-chart">
-                    <h2>Expense Categories</h2>
-                    <canvas id="myPieChart"></canvas>
+                    <h3 class="chart-title">Expense Categories</h3>
+                    <div class="canvas-wrapper">
+                        <canvas id="myPieChart"></canvas>
+                    </div>
                 </div>
             </section>
 
@@ -116,26 +92,93 @@
                     </tbody>
                 </table>
             </section>
+
+            <section class="danger-zone card mt-5">
+                <h2 class="text-danger">Delete Data</h2>
+                <p>Resetting your account will permanently delete all of your transaction data. This action cannot be undone.</p>
+                <form action="/reset-data" method="POST" onsubmit="return confirm('Are you absolutely sure you want to delete all your transaction data? This action cannot be undone.');">
+                    <button type="submit" class="btn btn-danger">Reset All Data</button>
+                </form>
+            </section>
         </main>
-    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Pass data from EJS to client-side JavaScript
-        const chartData = {
-            pie: {
-                labels: <%- JSON.stringify(pieChartLabels || []) %>,
-                data: <%- JSON.stringify(pieChartData || []) %>
-            },
-            line: {
-                labels: <%- JSON.stringify(lineChartLabels || []) %>,
-                incomeData: <%- JSON.stringify(lineChartIncomeData || []) %>,
-                expenseData: <%- JSON.stringify(lineChartExpenseData || []) %>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Data from EJS
+            const chartData = {
+                pie: {
+                    labels: <%- JSON.stringify(pieChartLabels || []) %>,
+                    data: <%- JSON.stringify(pieChartData || []) %>
+                },
+                line: {
+                    labels: <%- JSON.stringify(lineChartLabels || []) %>,
+                    incomeData: <%- JSON.stringify(lineChartIncomeData || []) %>,
+                    expenseData: <%- JSON.stringify(lineChartExpenseData || []) %>
+                }
+            };
+
+            // Line Chart: Income vs. Expenses
+            const lineCtx = document.getElementById('myLineChart');
+            if (lineCtx) {
+                new Chart(lineCtx, {
+                    type: 'line',
+                    data: {
+                        labels: chartData.line.labels,
+                        datasets: [{
+                            label: 'Income',
+                            data: chartData.line.incomeData,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            fill: true,
+                            tension: 0.4
+                        }, {
+                            label: 'Expenses',
+                            data: chartData.line.expenseData,
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { ticks: { autoSkip: true, maxRotation: 0, } },
+                            y: { beginAtZero: true }
+                        },
+                        plugins: { legend: { position: 'top', } }
+                    }
+                });
             }
-        };
+
+            // Pie Chart: Expense Categories
+            const pieCtx = document.getElementById('myPieChart');
+            if (pieCtx && chartData.pie.data.length > 0) {
+                new Chart(pieCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: chartData.pie.labels,
+                        datasets: [{
+                            label: 'Expenses by Category',
+                            data: chartData.pie.data,
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)',
+                                'rgba(255, 206, 86, 0.8)', 'rgba(75, 192, 192, 0.8)',
+                                'rgba(153, 102, 255, 0.8)', 'rgba(255, 159, 64, 0.8)'
+                            ],
+                            borderColor: 'rgba(255, 255, 255, 0.7)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'top' } } // Moves legend to prevent overlap
+                    }
+                });
+            }
+        });
     </script>
-
-    <script src="../script/a.js"></script>
-</body>
-
-</html>
