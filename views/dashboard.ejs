@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../style/sidebar.css">
+    <link rel="stylesheet" href="../style/dashboard.css">
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="logo">Finance Flow</div>
+            <nav class="nav-menu">
+                <ul>
+                    <li><a href="/dashboard" class="active">🏠 Dashboard</a></li>
+                    <li><a href="/managefinance">💰 Transactions</a></li>
+                    <li><a href="/services">📊 Services</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header class="dashboard-header">
+                <h1>Welcome, <%= username %>!</h1>
+                <div class="header-actions">
+                    <a href="/managefinance" class="btn">Add Transaction</a>
+                    <a href="/logout" class="btn btn-outline-danger">Logout</a>
+                    <a href="/home" class="btn btn-outline-info">Home</a>
+                </div>
+            </header>
+
+            <section class="summary-cards">
+                <div class="card">
+                    <h3>Total Balance</h3>
+                    <% const isBalanceNegative = typeof totalBalance !== 'undefined' && totalBalance < 0; %>
+                    <p class="card-value <%= isBalanceNegative ? 'negative-amount' : 'positive-amount' %>">
+                        <%= isBalanceNegative ? '-' : '' %>$<%= typeof totalBalance !== 'undefined' ? Math.abs(totalBalance).toFixed(2) : '0.00' %>
+                    </p>
+                    <p class="card-change <%= isBalanceNegative ? 'negative' : 'positive' %>">
+                        <%= isBalanceNegative ? '▼' : '▲' %> this month
+                    </p>
+                </div>
+                <div class="card">
+                    <h3>Monthly Income</h3>
+                    <p class="card-value positive-amount">$<%= typeof monthlyIncome !=='undefined' ? monthlyIncome.toFixed(2) : '0.00' %>
+                    </p>
+                    <p class="card-change positive">▲ this month</p>
+                </div>
+                <div class="card">
+                    <h3>Monthly Expenses</h3>
+                    <p class="card-value negative-amount">$<%= typeof monthlyExpenses !=='undefined' ? monthlyExpenses.toFixed(2) : '0.00' %>
+                    </p>
+                    <p class="card-change negative">▼ this month</p>
+                </div>
+                <div class="card">
+                    <h3>Savings Goal</h3>
+                    <p class="card-value">0% Complete</p>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: 1%;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="charts-section">
+                <div class="chart-container" id="line-chart">
+                    <h2>Income vs. Expenses</h2>
+                    <canvas id="myLineChart"></canvas>
+                </div>
+                <div class="chart-container" id="pie-chart">
+                    <h2>Expense Categories</h2>
+                    <canvas id="myPieChart"></canvas>
+                </div>
+            </section>
+
+
+            <section class="transaction-list">
+                <h2>Recent Transactions</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (transactions && transactions.length> 0) { %>
+                            <% transactions.forEach(function(tx) { %>
+                                <tr>
+                                    <td>
+                                        <%= tx.date ? new Date(tx.date).toLocaleDateString('en-US') : 'N/A' %>
+                                    </td>
+                                    <td>
+                                        <%= tx.item || tx.description || 'N/A' %>
+                                    </td>
+                                    <td>
+                                        <%= tx.category %>
+                                    </td>
+                                    <td
+                                        class="<%= tx.type && tx.type.toLowerCase() === 'income' ? 'positive-amount' : 'negative-amount' %>">
+                                        <%= tx.type && tx.type.toLowerCase()==='income' ? '+' : '-' %>$<%=
+                                                tx.amount.toFixed(2) %>
+                                    </td>
+                                </tr>
+                                <% }) %>
+                                    <% } else { %>
+                                        <tr>
+                                            <td colspan="4">No transactions found.</td>
+                                        </tr>
+                                        <% } %>
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Pass data from EJS to client-side JavaScript
+        const chartData = {
+            pie: {
+                labels: <%- JSON.stringify(pieChartLabels || []) %>,
+                data: <%- JSON.stringify(pieChartData || []) %>
+            },
+            line: {
+                labels: <%- JSON.stringify(lineChartLabels || []) %>,
+                incomeData: <%- JSON.stringify(lineChartIncomeData || []) %>,
+                expenseData: <%- JSON.stringify(lineChartExpenseData || []) %>
+            }
+        };
+    </script>
+
+    <script src="../script/a.js"></script>
+</body>
+
+</html>

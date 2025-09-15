@@ -16,8 +16,15 @@
             FinanceFlow
         </a>
         <div>
-            <a href="/signup" class="header-button">Sign in</a>
-            <a href="/login" class="header-button">Log in</a>
+            <% if(!currentUser) {%>
+                <a href="/signup" class="header-button">Sign Up</a>
+                <a href="/login" class="header-button">Log In</a>
+                <% } else { %>
+                    <span class="header-button-welcome">Welcome, <%= currentUser.displayName || currentUser.username %>
+                            </span>
+                    <a href="/managefinance" class="header-button">Dashboard</a>
+                    <a href="/logout" class="header-button">Log Out</a>
+                    <% } %>
         </div>
     </header>
     <div class="container">
@@ -31,7 +38,7 @@
                 beautiful, intuitive platform. Make informed decisions and achieve
                 your financial goals.
             </p>
-            <a href="#" class="hero-button">
+            <a href="/login" class="hero-button">
                 Start Managing Money
                 <span class="hero-button-arrow">&rarr;</span>
             </a>

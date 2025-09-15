@@ -4,11 +4,11 @@ const session = require('express-session');
 const passport = require('passport');
 const flash = require('connect-flash');
 const path = require('path');
+const crypto = require('crypto');
 const LocalStrategy = require('passport-local').Strategy;
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('./models/user');
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
 const Transaction = require('./models/Transaction');
 
 mongoose.connect('mongodb://127.0.0.1:27017/finance-tracker-app')
@@ -20,58 +20,43 @@ app.set('view engine', 'ejs');
 // Middleware to parse URL-encoded bodies (as sent by HTML forms)
 app.use(express.urlencoded({ extended: true }));
 
-app.use(session({
-    secret: 'SECRET123',
+const sessionConfig = {
+    secret: 'rew123', // It's good practice to change your secret
     resave: false,
-    saveUninitialized: false
-}));
+    saveUninitialized: true,
+    cookie: {
+        httpOnly: true,
+        expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
+        maxAge: 1000 * 60 * 60 * 24 * 7
+    }
+}
+
+app.use(session(sessionConfig));
 // flash middleware
 app.use(flash());
 // initialize passport
 app.use(passport.initialize());
 app.use(passport.session());
+
+// Passport configuration with passport-local-mongoose
+passport.use(new LocalStrategy(User.authenticate()));
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+
 app.use((req, res, next) => {
-    res.locals.user = req.user || null;  // make user available in all EJS views
+    res.locals.currentUser = req.user;
+    res.locals.success = req.flash('success');
+    res.locals.error = req.flash('error');
     next();
 });
-
-passport.use(new LocalStrategy(
-    async (username, password, done) => {
-        try {
-            const user = await User.findOne({ username: username });
-            if (!user) {
-                return done(null, false, { message: 'Incorrect username.' });
-            }
-            const isMatch = await bcrypt.compare(password, user.password);
-            if (!isMatch) {
-                return done(null, false, { message: 'Incorrect password.' });
-            }
-            return done(null, user);
-        } catch (err) {
-            return done(err);
-        }
-    }
-));
 
 function ensureAuth(req, res, next) {
     if (req.isAuthenticated()) {
         return next();
     }
+    req.flash('error', 'You must be signed in first!');
     res.redirect('/login');
 }
-
-// serialize / deserialize user
-passport.serializeUser((user, done) => {
-    done(null, user.id);
-});
-passport.deserializeUser(async (id, done) => {
-    try {
-        const user = await User.findById(id);
-        done(null, user);
-    } catch (err) {
-        done(err, null);
-    }
-});
 
 passport.use(new GoogleStrategy({
     clientID: "81686256472-dm31lekf7cagreel3fo0g84274gnvnen.apps.googleusercontent.com",
@@ -105,8 +90,10 @@ passport.use(new GoogleStrategy({
                     return done(null, user);
                 }
                 // If no user is found by googleId or email, create a new one
-                const newUser = await User.create(newUserInfo);
-                return done(null, newUser);
+                const user = new User(newUserInfo);
+                // Register the new user with a random password to satisfy passport-local-mongoose
+                const registeredUser = await User.register(user, crypto.randomBytes(16).toString('hex'));
+                return done(null, registeredUser);
             }
         } catch (err) {
             return done(err, null);
@@ -127,60 +114,140 @@ app.get('/auth/google/callback',
         res.redirect('/home');
     }
 );
-// app.post("managefinance/addtransactions/:id", ensureAuth, async (req, res) => {
-//     const { category, item, amount } = req.body;
-//     const
-//     const newTransaction = new Transaction({
-//         category,
-//         item,
-//         amount,
-//     });
-//     await newTransaction.save();
-// });
 
-// dashboard route (protected)
+app.post('/managefinance', ensureAuth, async (req, res) => {
+    const { type, amount, category, item } = req.body;
+    const newTransaction = new Transaction({
+        type,
+        amount,
+        category,
+        item,
+        user: req.user._id
+    })
+    await newTransaction.save();
+});
+
+
 app.get("/home", (req, res) => {
-    res.render("home.ejs", { user: req.user });
+    res.render("home.ejs");
 })
 app.get("/signup", (req, res) => {
-    res.render("signup.ejs", { messages: req.flash('error') });
+    res.render("signup.ejs");
 })
+
+app.get('/services', (req, res) => {
+    res.render('services.ejs');
+})
+
+app.get('/dashboard', ensureAuth, async (req, res) => {
+    try {
+        const allTransactions = await Transaction.find({ user: req.user._id });
+
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        let totalBalance = 0;
+        let monthlyIncome = 0;
+        let monthlyExpenses = 0;
+
+        allTransactions.forEach(transaction => {
+            const isCurrentMonth = transaction.date && new Date(transaction.date) >= startOfMonth;
+
+            if (transaction.type && transaction.type.toLowerCase() === 'income') {
+                totalBalance += transaction.amount;
+                if (isCurrentMonth) monthlyIncome += transaction.amount;
+            } else {
+                totalBalance -= transaction.amount;
+                if (isCurrentMonth) monthlyExpenses += transaction.amount;
+            }
+        });
+
+        const recentTransactions = allTransactions
+            .sort((a, b) => new Date(b.date) - new Date(a.date))
+            .slice(0, 5);
+
+        // Data for Pie Chart (Expense Categories)
+        const expenseByCategory = {};
+        allTransactions.forEach(transaction => {
+            if (transaction.type === 'expense') {
+                expenseByCategory[transaction.category] = (expenseByCategory[transaction.category] || 0) + transaction.amount;
+            }
+        });
+        const pieChartLabels = Object.keys(expenseByCategory);
+        const pieChartData = Object.values(expenseByCategory);
+
+        // Data for Line Chart (Income vs Expense over last 6 months)
+        const monthlyTrend = {};
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+        sixMonthsAgo.setDate(1);
+        sixMonthsAgo.setHours(0, 0, 0, 0);
+
+        for (let i = 0; i < 6; i++) {
+            const date = new Date(sixMonthsAgo.getFullYear(), sixMonthsAgo.getMonth() + i, 1);
+            const monthKey = date.toLocaleString('en-US', { month: 'short' }); // e.g., "Sep"
+            monthlyTrend[monthKey] = { income: 0, expenses: 0 };
+        }
+
+        allTransactions.forEach(transaction => {
+            const transactionDate = new Date(transaction.date);
+            if (transactionDate >= sixMonthsAgo) {
+                const monthKey = transactionDate.toLocaleString('en-US', { month: 'short' });
+                if (monthlyTrend.hasOwnProperty(monthKey)) {
+                    if (transaction.type === 'income') {
+                        monthlyTrend[monthKey].income += transaction.amount;
+                    } else {
+                        monthlyTrend[monthKey].expenses += transaction.amount;
+                    }
+                }
+            }
+        });
+
+        const lineChartLabels = Object.keys(monthlyTrend);
+        const lineChartIncomeData = lineChartLabels.map(month => monthlyTrend[month].income);
+        const lineChartExpenseData = lineChartLabels.map(month => monthlyTrend[month].expenses);
+
+        res.render('dashboard.ejs', {
+            username: req.user.username,
+            transactions: recentTransactions,
+            totalBalance, monthlyIncome, monthlyExpenses,
+            pieChartLabels, pieChartData,
+            lineChartLabels, lineChartIncomeData, lineChartExpenseData,
+        });
+    } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        req.flash('error', 'Could not load dashboard data.');
+        res.redirect('/home');
+    }
+});
 
 app.post("/signup", async (req, res) => {
     try {
         const { username, password } = req.body;
-        // It's crucial to hash passwords before storing them.
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({
-            username,
-            password: hashedPassword
+        const user = new User({ username });
+        const registeredUser = await User.register(user, password);
+        req.login(registeredUser, err => {
+            if (err) return next(err);
+            req.flash('success', 'Welcome to FinanceFlow!');
+            res.redirect('/home');
         });
-        await newUser.save();
-        res.redirect('/login');
     } catch (error) {
-        // This will catch errors, including the one for a duplicate username
-        if (error.code === 11000) { // MongoDB duplicate key error
-            req.flash('error', 'Username already exists. Please choose another one.');
-        } else {
-            console.log(error);
-            req.flash('error', 'An error occurred during signup. Please try again.');
-        }
+        req.flash('error', error.message);
         res.redirect('/signup');
     }
 });
 
 
 app.get("/login", (req, res) => {
-    res.render("login.ejs", { messages: req.flash('error') });
+    res.render("login.ejs");
 });
 
 app.post('/login',
     passport.authenticate('local', {
-        successRedirect: '/home',
+        successRedirect: '/dashboard',
         failureRedirect: '/login',
         failureFlash: true
-    }),
-    res.redirect('/managefinance')
+    })
 );
 
 app.get('/logout', (req, res, next) => {
@@ -191,47 +258,27 @@ app.get('/logout', (req, res, next) => {
 });
 
 app.get("/managefinance", ensureAuth, async (req, res) => {
-    const expenditureByCategory = await Transaction.aggregate([
-        {
-            // The pipeline starts by matching only the current user's documents
-            $match: {
-                user: req.user._id,
-                type: 'Expense'
-            }
-        },
-        {
-            $group: {
-                _id: '$category',
-                totalAmount: { $sum: '$amount' }
-            }
-        },
-        // ...
-    ]);
-    try {
-        // This query only finds transactions matching the user's ID
-        const transactions = await Transaction.find({ user: req.user.id }).sort({ date: -1 });
-        // ...
-        res.render("managefinance.ejs", { user: req.user, transactions: transactions, expenditureByCategory });
-    } //...
-    catch (error) {
-        console.error(error);
-    }
-    // ... inside GET /managefinance
-
+    const transactions = await Transaction.find({ user: req.user._id });
+    res.render("managefinance.ejs", { transactions });
 });
 
 app.post('/transactions', ensureAuth, async (req, res) => {
     try {
-        const { type, amount, category, description } = req.body;
+        const { type, amount, category, item } = req.body;
         const newTransaction = new Transaction({
-            type, category, amount, description,
-            user: req.user.id, // <-- This line is key!
-            date: new Date()
+            type,
+            amount,
+            category,
+            item,
+            user: req.user._id
         });
         await newTransaction.save();
+        req.flash('success', 'Transaction added successfully!');
         res.redirect('/managefinance');
     } catch (error) {
-        //...
+        console.error("Error adding transaction:", error);
+        req.flash('error', 'Could not add transaction. Please check all fields.');
+        res.redirect('/managefinance');
     }
 });
 

@@ -1,0 +1,53 @@
+/* Sidebar Styles */
+.app-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 220px;
+    background: #1e1e2f;
+    color: #fff;
+    padding: 20px 15px;
+    display: flex;
+    flex-direction: column;
+}
+
+.logo {
+    margin-bottom: 30px;
+    font-size: 1.3em;
+    font-weight: bold;
+    text-align: center;
+}
+
+.sidebar nav ul {
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar nav ul li {
+    margin-bottom: 20px;
+}
+
+.sidebar nav ul li a {
+    text-decoration: none;
+    color: #bbb;
+    font-size: 1em;
+    display: block;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: 0.3s;
+}
+
+.sidebar nav ul li a:hover,
+.sidebar nav ul li.active a {
+    background: #007bff;
+    color: #fff;
+}
+
+/* Main content */
+.main-content {
+    flex: 1;
+    background: #f0f2f5;
+    padding: 30px;
+}

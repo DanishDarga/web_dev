@@ -17,9 +17,9 @@
                 <div class="card shadow-sm">
                     <div class="card-body p-4">
                         <h2 class="card-title text-center mb-4">Log In</h2>
-                        <% if (messages && messages.length> 0) { %>
+                        <% if (error && error.length> 0) { %>
                             <div class="alert alert-danger" role="alert">
-                                <%= messages[0] %>
+                                <%= error %>
                             </div>
                             <% } %>
                                 <form action="/login" method="POST">
