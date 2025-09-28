@@ -144,6 +144,10 @@ app.use((req, res, next) => {
 //                              ROUTES
 // =================================================================
 
+app.get("/", (req, res) => {
+  res.render("home.ejs");
+});
+
 // start Google authentication
 app.get(
   "/auth/google",
