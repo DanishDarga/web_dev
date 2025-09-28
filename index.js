@@ -13,6 +13,7 @@ const User = require("./models/user");
 const ejsMate = require("ejs-mate");
 const mongoose = require("mongoose");
 const Transaction = require("./models/Transaction");
+const MongoStore = require("connect-mongo");
 
 require("dotenv").config();
 
@@ -36,10 +37,20 @@ app.engine("ejs", ejsMate);
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
+const store = MongoStore.create({
+  mongoUrl: process.env.DB_URL,
+  touchAfter: 24 * 3600, // time period in seconds
+});
+
+store.on("error", function (e) {
+  console.log("SESSION STORE ERROR", e);
+});
+
 const sessionConfig = {
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
+  store: store,
   cookie: {
     httpOnly: true,
     expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
